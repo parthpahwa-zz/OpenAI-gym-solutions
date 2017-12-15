@@ -3,18 +3,18 @@ import numpy as np
 from frozenlakeNN import NeuralNet
 
 def modify_reward(rwd, flag):
-	if rwd == 0:
-		return -0.001
 	if flag:
 		if rwd < 1:
-			return -0.5
+			return -0.95
+	if rwd == 0:
+		return -0.01
 	return rwd
 
 env = gym.make('FrozenLake-v0')
 n_actions = env.action_space.n
 n_states = env.observation_space.n
 num_episodes = 2000
-agent = NeuralNet(n_actions=n_actions, n_states=n_states, eps=0.1, discount=0.99, lr=0.2)
+agent = NeuralNet(n_actions=n_actions, n_states=n_states, eps=0.1, discount=0.90, lr=0.2)
 counter = 0
 rList = []
 for i in range(0, num_episodes):
