@@ -23,7 +23,7 @@ Member Functions:
 """
 class NeuralNet:
 
-	def __init__(self, n_actions, n_states, eps=0.1, discount=0.99, lr=0.1):
+	def __init__(self, n_actions, n_states, eps=0.1, discount=0.90, lr=0.1):
 		self.n_actions = n_actions
 		self.n_states = n_states
 		self.discount = discount
@@ -64,8 +64,8 @@ class NeuralNet:
 		newQVal = self.predict(next_state)
 
 		TargetQValue = self.predict(state)
-		# Update Q values using Bellman equation
-		TargetQValue[0, action[0]] = reward + self.discount * np.max(newQVal)
+		# Update Q values using Bellman equation + noise
+		TargetQValue[0, action[0]] = TargetQValue[0, action[0]] + 0.9*(reward + self.discount * np.max(newQVal) - TargetQValue[0, action[0]])
 
 		nn_dict = {self.input_tensor:state, self.TargetQval:TargetQValue}
 
