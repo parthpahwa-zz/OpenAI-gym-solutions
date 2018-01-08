@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 """
-Class: NeuralNet
+Class: Agent
 
 Member Variables:
 	1) n_actions : (int) number of available actions for the agent
@@ -21,7 +21,7 @@ Member Functions:
 	4) getGreedyAction : returns the action using epsilon greedy method
 	5) learn : Trains the neural network
 """
-class NeuralNet:
+class Agent:
 
 	def __init__(self, n_actions, n_states, eps=0.1, discount=0.90, lr=0.1):
 		self.n_actions = n_actions
