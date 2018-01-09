@@ -2,12 +2,10 @@ import tensorflow as tf
 import numpy as np
 import tensorflow.contrib.slim as slim
 
-"""
 
-"""
 class Agent:
 
-	def __init__(self, n_actions, input_dim, n_hidden, lr=0.2, eps=0.1):
+	def __init__(self, n_actions, input_dim, n_hidden, lr=0.03, eps=0.1):
 		self.n_actions = n_actions
 		self.lr = lr
 		self.n_hidden = n_hidden
@@ -29,13 +27,13 @@ class Agent:
 		self.gradients = tf.gradients(self.loss, self.trainable_vars)
 		self.grad_list = []
 		for indx, var in enumerate(self.trainable_vars):
-			self.grad_list.append(tf.placeholder(dtype=tf.float32, name=str(indx + 1)+"_holder"))
+			self.grad_list.append(tf.placeholder(dtype=tf.float32, name=str(indx)+"_holder"))
 
 		self.update_grads = self.trainer.apply_gradients(zip(self.grad_list, self.trainable_vars))
 
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
-		self.trainable_vars = self.sess.run(tf.trainable_variables())
+
 
 
 	# No need to use bias as the input is one-hot encoded
@@ -61,6 +59,9 @@ class Agent:
 		# feed_dict = dict(zip(self.grad_list, gradient_buffer))
 		# print feed_dict
 		return self.sess.run(self.update_grads, feed_dict=feed_dict)
+
+	def get_trainable_var(self):
+		return self.sess.run(self.trainable_vars)
 
 	def decayEps(self, i):
 		self.epsilon = 1./((i/10) + 10)
