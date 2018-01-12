@@ -4,8 +4,8 @@ import tensorflow.contrib.slim as slim
 
 class Agent:
 	def __init__(self, n_actions, input_dim, n_hidden, lr=0.01):
-		self.lr = lr
 		tf.reset_default_graph()
+		self.lr = lr
 		self.input_tensor, self.output, self.trainer = self.build_model(input_dim, n_hidden, n_actions)
 		self.policy_list = tf.placeholder(tf.float32, shape=[None, 1], name="policy_list")
 		self.advantage = tf.placeholder(tf.float32, shape=[None, 1], name="reward_list")
@@ -17,8 +17,8 @@ class Agent:
 
 	def build_model(self, input_dim, n_hidden, n_actions):
 		self.input_tensor = tf.placeholder(shape=[None, input_dim], dtype=tf.float32)
-		hidden = slim.fully_connected(self.input_tensor, n_hidden, biases_initializer=None, activation_fn=tf.nn.relu, weights_initializer=tf.contrib.layers.xavier_initializer())
-		output = slim.fully_connected(hidden, n_actions, activation_fn=tf.nn.sigmoid, biases_initializer=None)
+		hidden = slim.fully_connected(self.input_tensor, n_hidden, activation_fn=tf.nn.relu, weights_initializer=tf.contrib.layers.xavier_initializer())
+		output = slim.fully_connected(hidden, 1, activation_fn=tf.nn.sigmoid)
 		trainer = tf.train.AdamOptimizer(learning_rate=self.lr)
 		return self.input_tensor, output, trainer
 
