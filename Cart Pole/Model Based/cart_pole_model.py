@@ -10,7 +10,7 @@ class Model:
 		self.input_tensor, self.output, self.trainer = self.build_model(input_dim, n_hidden)
 		self.loss = self.define_loss(input_dim)
 		self.update_grads = self.trainer.minimize(self.loss)
-		self.predicted_output = tf.concat([output[0], output[1], output[2]], axis=1),
+		self.predicted_output = tf.concat(self.output, axis=1),
 		self.sess = tf.Session()
 		self.sess.run(tf.global_variables_initializer())
 
@@ -18,19 +18,19 @@ class Model:
 	def build_model(self, input_dim, n_hidden):
 		self.input_tensor = tf.placeholder(shape=[None, input_dim + 1], dtype=tf.float32)
 
-		hidden_1 = slim.fully_connected(self.input_tensor, n_hidden, biases_initializer=None, activation_fn=tf.nn.relu, weights_initializer=tf.contrib.layers.xavier_initializer())
-		hidden_2 = slim.fully_connected(hidden_1, n_hidden, biases_initializer=None, activation_fn=tf.nn.relu, weights_initializer=tf.contrib.layers.xavier_initializer())
+		hidden_1 = slim.fully_connected(self.input_tensor, n_hidden, activation_fn=tf.nn.relu, weights_initializer=tf.contrib.layers.xavier_initializer())
+		hidden_2 = slim.fully_connected(hidden_1, n_hidden, activation_fn=tf.nn.relu, weights_initializer=tf.contrib.layers.xavier_initializer())
 
-		output_state = slim.fully_connected(hidden_2, input_dim + 1, biases_initializer=None)
-		output_reward = slim.fully_connected(hidden_2, 1, biases_initializer=None)
-		output_done = slim.fully_connected(hidden_2, 1, activation_fn=tf.nn.sigmoid, biases_initializer=None)
+		output_state = slim.fully_connected(hidden_2, input_dim, activation_fn=tf.nn.softmax)
+		output_reward = slim.fully_connected(hidden_2, 1)
+		output_done = slim.fully_connected(hidden_2, 1, activation_fn=tf.nn.sigmoid)
 
 		trainer = tf.train.AdamOptimizer(learning_rate=self.lr)
 		return self.input_tensor, [output_state, output_reward, output_done], trainer
 
 
 	def define_loss(self, input_dim):
-		self.obs_state = tf.placeholder(tf.float32, shape=[None, input_dim + 1])
+		self.obs_state = tf.placeholder(tf.float32, shape=[None, input_dim])
 		self.obs_reward = tf.placeholder(tf.float32, shape=[None, 1])
 		self.obs_done = tf.placeholder(tf.float32, shape=[None, 1])
 
@@ -38,7 +38,7 @@ class Model:
 		loss_reward = tf.square(self.obs_reward - self.output[1])
 		loss_done = -1.0*tf.log(self.obs_done * self.output[2] + (1 - self.obs_done) * (1 - self.output[2]))
 
-		loss = tf.reduce_max(loss_state + loss_reward + loss_done)
+		loss = tf.reduce_mean(loss_state + loss_reward + loss_done)
 		return loss
 
 
