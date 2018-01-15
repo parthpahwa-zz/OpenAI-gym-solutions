@@ -6,12 +6,12 @@ from keras.optimizers import RMSprop
 
 
 class Agent:
-	BATCH_SIZE = 64
-	GAMMA = 0.99
-	def __init__(self, n_actions, input_dim, n_hidden, lr=0.001, eps=0.1, memory=100000):
+	def __init__(self, input_dim, n_actions, n_hidden, lr=0.00025, eps=1.0, memory=100000):
 		self.n_states = input_dim
 		self.n_actions = n_actions
 		self.eps = eps
+		self.BATCH_SIZE = 64
+		self.GAMMA = 0.99
 		self.model = self.build_model(input_dim, n_actions, n_hidden, lr)
 		self.memory = Memory(memory, input_dim)
 
@@ -21,13 +21,13 @@ class Agent:
 		model.add(Dense(input_dim=input_dim, units=n_hidden, activation='relu'))
 		model.add(Dense(units=n_actions, activation='linear'))
 		optimizer = RMSprop(lr=lr)
-		model.compile(loss='logcosh', optimizer=optimizer)
+		model.compile(loss='mse', optimizer=optimizer)
 
 		return model
 
 
 	def train(self, x, y, verbose=0):
-		self.model.fit(x, y, verbose=verbose)
+		self.model.fit(x, y, verbose=verbose, batch_size=64)
 
 
 	def predict(self, state):
@@ -41,38 +41,51 @@ class Agent:
 			return random.randint(0, self.n_actions-1)
 
 
+	def save(self, state, next_state, action, reward):
+		self.memory.add(np.array(state), np.array(next_state), np.array(action), np.array(reward))
+
+
 	def replay(self):
-		batch = self.memory.sample(BATCH_SIZE)
+		batch = self.memory.sample(self.BATCH_SIZE)
 
 		x = np.empty(0).reshape(0, self.n_states)
 		y = np.empty(0).reshape(0, self.n_actions)
-
 		zeros = np.zeros(4)
+
 		none_list = [None for itr in range(0, self.n_states)]
 		next_state = np.array([(zeros if np.array_equal(state, none_list) else state) for state in batch[:, 4:8]])
+		state = batch[:, :4]
 		target_Q = self.predict(next_state)
+		Q_value = self.predict(state)
 
 		for indx, element in enumerate(batch):
 			state = element[:4]
 			next_state = element[4:8]
-			reward = element[8]
+			action = int(element[8])
+			reward = element[9]
+			q_val = Q_value[indx]
 
 			if np.array_equal(next_state, none_list):
-				y = np.vstack([y, reward])
+				q_val[action] = reward
 			else:
-				y = np.vstack([y, reward + GAMMA * np.amax(target_Q[indx])])
-			x = np.vstack([x, state])
-		self.train(x, y, verbose=1)
+				q_val[action] = reward + self.GAMMA * np.amax(np.array(target_Q[indx]))
 
+			y = np.vstack([y, q_val])
+			x = np.vstack([x, state])
+		self.train(x, y)
+
+
+	def decay(self):
+		self.eps = self.eps*0.99
 
 class Memory:
 
 	def __init__(self, capacity, n_state):
 		self.capacity = capacity
-		self.transition_list = np.empty(0).reshape(0, n_state * 2 + 1)
+		self.transition_list = np.empty(0).reshape(0, n_state * 2 + 1 + 1)
 
-	def add(self, state, reward, next_state):
-		temp = np.hstack([state, reward, next_state])
+	def add(self, state, next_state, action, reward):
+		temp = np.hstack([state, next_state, action, reward])
 		self.transition_list = np.vstack([self.transition_list, temp])
 		if len(self.transition_list) > self.capacity:
 			self.transition_list = np.delete(self.transition_list, 0, 0)
