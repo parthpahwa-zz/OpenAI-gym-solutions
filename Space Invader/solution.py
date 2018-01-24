@@ -1,8 +1,12 @@
+import os.path
 import gym
 from agent import Agent
 import numpy as np
 import cv2
 from keras.models import load_model
+
+WIDTH = 80
+HEIGHT = 80
 
 class Environment:
 	def __init__(self, environment_name):
@@ -13,12 +17,13 @@ class Environment:
 		state = self.env.reset()
 		total_reward = 0
 		state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
-		state = cv2.resize(state, (80, 80))
+		state = cv2.resize(state, (HEIGHT, WIDTH))
 		while True:
-			action, self.q_val = agent.predict_single(np.array(state).reshape(1, 80, 80, 1))
+
+			action, self.q_val = agent.predict_single(np.array(state).reshape(1, HEIGHT, WIDTH, 1))
 			next_state, reward, done, _ = self.env.step(action)
-      
-			if done:
+
+			if done: # terminal state
 				next_state = None
 			else:
 				next_state = cv2.cvtColor(next_state, cv2.COLOR_BGR2GRAY)
@@ -37,22 +42,23 @@ class Environment:
 
 
 space_invader = Environment('SpaceInvaders-v0')
-# print cart_pole.env.observation_space.shape[0], cart_pole.env.action_space.n
-agent = Agent(space_invader.env.observation_space.shape[0], space_invader.env.action_space.n, 64)
+agent = Agent(HEIGHT, WIDTH, space_invader.env.action_space.n)
 
 itr = 0
 reward_list = []
 try:
-	agent.model = load_model("my_model_itr_0.h5")
+	if os.path.isfile("weights.h5"):
+		agent.model = load_model("weights.h5")
+		print "Weights loaded"
+
 	while True:
 		reward, q_val = space_invader.run(agent)
 		print "Reward:", reward, "Q value:", q_val, "Iteration:", itr
+		agent.decay()
 		reward_list.append(reward)
-		if itr % 50 == 0 and itr != 0:
-			print np.mean(reward_list[-50:])
-			model_name = "my_model_itr_" + str(itr) + ".h5"
-			agent.model.save(model_name)
+		if itr % 100 == 0 and itr != 0:
+			print np.mean(reward_list[-100:])
+			agent.model.save("weights.h5")
 		itr += 1
 finally:
-	model_name = "my_model_itr_" + str(itr) + ".h5"
-	agent.model.save(model_name)
+	agent.model.save("weights.h5")
