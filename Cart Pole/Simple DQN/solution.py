@@ -50,4 +50,4 @@ try:
 			print np.mean(reward_list[-100:])
 		itr += 1
 finally:
-	agent.model.save("wights.h5")
+	agent.model.save("weights.h5")
