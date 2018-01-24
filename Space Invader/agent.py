@@ -1,27 +1,28 @@
 import random
 import numpy as np
 from keras.models import Sequential
-from keras.layers import Conv2D, MaxPooling2D, Dense, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten
 from keras.optimizers import RMSprop
 
 
 class Agent:
-	def __init__(self, input_dim, n_actions, n_hidden, lr=0.0005, eps=1.0, memory=60000):
-		self.n_states = input_dim
+	def __init__(self, height, width, n_actions, lr=0.0005, eps=1.0, memory=60000):
 		self.n_actions = n_actions
+		self.height = height
+		self.width = width
 		self.counter = 1
 		self.eps = eps
-		self.BATCH_SIZE = 64
+		self.BATCH_SIZE = 32
 		self.GAMMA = 0.99
 		self.MIN_EPS = 0.1
-		self.model = self.build_model(input_dim, n_actions, n_hidden, lr)
-		self.memory = Memory(memory, input_dim)
+		self.model = self.build_model(height, width, n_actions, lr)
+		self.memory = Memory(memory)
+		self.zeros = np.zeros(self.height * self.width).reshape(self.height, self.width)
 
 
-	def build_model(self, input_dim, n_actions, n_hidden, lr):
-
+	def build_model(self, height, width, n_actions, lr):
 		model = Sequential()
-		model.add(Conv2D(32, kernel_size=11, activation='relu', input_shape=[80, 80, 1]))
+		model.add(Conv2D(32, kernel_size=11, activation='relu', input_shape=[height, width, 1]))
 		model.add(Conv2D(24, 5, activation='relu'))
 		model.add(MaxPooling2D(pool_size=3, strides=2))
 		model.add(Flatten())
@@ -30,6 +31,7 @@ class Agent:
 		model.add(Dense(n_actions, activation='linear'))
 		optimizer = RMSprop(lr=lr)
 		model.compile(loss='mse', optimizer=optimizer)
+
 		return model
 
 
@@ -50,11 +52,6 @@ class Agent:
 
 
 	def save(self, state, next_state, action, reward):
-		if self.counter % 101 == 0:
-			self.decay()
-			self.counter = 1
-		else:
-			self.counter += 1
 		self.memory.add((np.array(state, dtype=float), np.array(next_state), np.array(action), np.array(reward)))
 
 
@@ -63,17 +60,15 @@ class Agent:
 
 		x = []
 		y = np.empty(0).reshape(0, self.n_actions)
-		zeros = np.zeros(80 * 80).reshape(80, 80)
 		next_state = []
 		for state in batch[:, 1]:
-			if state.shape == (80, 80):
+			if state.shape == (self.height, self.width):
 				next_state.append(state)
 			else:
-				next_state.append(zeros)
+				next_state.append(self.zeros)
 
-		next_state = np.vstack(next_state).reshape(-1, 80, 80, 1)
-		state = np.vstack(batch[:, 0]).reshape(-1, 80, 80, 1)
-
+		next_state = np.vstack(next_state).reshape(-1, self.height, self.width, 1)
+		state = np.vstack(batch[:, 0]).reshape(-1, self.height, self.width, 1)
 		target_Q = self.predict(next_state)
 		Q_value = self.predict(state)
 
@@ -88,10 +83,10 @@ class Agent:
 				q_val[action] = reward
 			else:
 				q_val[action] = reward + self.GAMMA * np.amax(np.array(target_Q[indx]))
-				
+
 			y = np.vstack([y, q_val])
 			x.append(state)
-		x = np.array(x).reshape(-1, 80, 80, 1)
+		x = np.array(x).reshape(-1, self.height, self.width, 1)
 		self.train(x, y)
 
 
@@ -99,18 +94,19 @@ class Agent:
 		if self.eps > self.MIN_EPS:
 			self.eps = self.eps*0.99
 
+
 class Memory:
 
-	def __init__(self, capacity, n_state):
+	def __init__(self, capacity):
 		self.capacity = capacity
-		self.transition_list = np.empty(0).reshape(0, 4)
+		self.transition_list = []
 
 	def add(self, action_replay):
-		
-		self.transition_list = np.vstack([self.transition_list, action_replay])
+		self.transition_list.append(action_replay)
 		if len(self.transition_list) > self.capacity:
-			self.transition_list = np.delete(self.transition_list, 0, 0)
+			self.transition_list.pop()
 
 	def sample(self, n):
-		n = min(n, len(self.transition_list))
+		if n > len(self.transition_list):
+			return np.array(self.transition_list)
 		return np.array(random.sample(self.transition_list, n))
