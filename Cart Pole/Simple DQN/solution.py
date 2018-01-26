@@ -3,7 +3,7 @@ import gym
 from agent import Agent
 import numpy as np
 from keras.models import load_model
-
+import ast
 
 class Environment:
 	def __init__(self, environment_name):
@@ -14,6 +14,7 @@ class Environment:
 		state = self.env.reset()
 		total_reward = 0
 		while True:
+			# self.env.render()
 			action, self.q_val = agent.predict_single(state)
 			next_state, reward, done, _ = self.env.step(action)
 
@@ -25,7 +26,6 @@ class Environment:
 
 			state = next_state
 			total_reward += reward
-
 			if done:
 				break
 
@@ -38,16 +38,34 @@ agent = Agent(cart_pole.env.observation_space.shape[0], cart_pole.env.action_spa
 itr = 0
 reward_list = []
 try:
+	target = open('score.txt', 'a')
+
 	if os.path.isfile("weights.h5"):
 		agent.model = load_model("weights.h5")
+		print "Weights loaded"
 
-	while True:
+	if os.path.isfile("config.txt"):
+		config_file = open('config.txt', 'r')
+		config = ast.literal_eval(config_file.read())
+		itr = int(config["itr"])
+		agent.eps = float(config["eps"])
+		config_file.close()
+		print "Config loaded"
+
+	while itr < 10000:
 		reward, q_val = cart_pole.run(agent)
-		print "Reward:", reward, "Q value:", q_val, "Iteration:", itr
-		agent.decay()
+		string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr) + "\n"
+		target.write(string)
 		reward_list.append(reward)
+		if itr % 10 == 0:
+			agent.decay()
 		if itr % 100 == 0 and itr != 0:
-			print np.mean(reward_list[-100:])
+			target.write(str(np.mean(reward_list[-100:])))
 		itr += 1
 finally:
+	target.close()
 	agent.model.save("weights.h5")
+	config_file = open('config.txt', 'w')
+	config = {"itr":itr, "eps":agent.eps}
+	config_file.write(str(config))
+	config_file.close()
