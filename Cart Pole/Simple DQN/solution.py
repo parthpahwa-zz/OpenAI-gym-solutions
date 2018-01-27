@@ -60,7 +60,7 @@ try:
 		if itr % 10 == 0:
 			agent.decay()
 		if itr % 100 == 0 and itr != 0:
-			target.write(str(np.mean(reward_list[-100:])))
+			target.write(str(np.mean(reward_list[-100:])) + "\n")
 		itr += 1
 finally:
 	target.close()
