@@ -50,11 +50,6 @@ class Agent:
 
 
 	def save(self, state, next_state, action, reward):
-		if self.itr % 500 == 0 and self.eps > self.MIN_EPS:
-			self.decay()
-			self.itr = 0
-		else:
-			self.itr += 1
 		self.memory.add(np.array(state), np.array(next_state), int(action), int(reward))
 
 
@@ -90,7 +85,8 @@ class Agent:
 
 
 	def decay(self):
-		self.eps = self.eps*0.99
+		if self.eps > self.MIN_EPS:
+			self.eps = self.eps*0.99
 
 
 class Memory:
