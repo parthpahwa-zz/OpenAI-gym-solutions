@@ -55,7 +55,7 @@ class Agent:
 			self.itr = 0
 		else:
 			self.itr += 1
-		self.memory.add(np.array(state), np.array(next_state), np.array(action), np.array(reward))
+		self.memory.add(np.array(state), np.array(next_state), int(action), int(reward))
 
 
 	def replay(self):
