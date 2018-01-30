@@ -1,9 +1,9 @@
 import os.path
+import ast
 import gym
 from agent import Agent
 import numpy as np
 from keras.models import load_model
-import ast
 
 class Environment:
 	def __init__(self, environment_name):
@@ -31,8 +31,19 @@ class Environment:
 
 		return total_reward, self.q_val
 
+def perform_early_stop(count):
+	itr1 = 0
+	reward_list1 = []
+	while itr1 < 25:
+		reward1, q_val1 = cart_pole.test(agent)
+		reward_list1.append(reward1)
+		itr1 += 1
+	if np.mean(reward_list1) > 475:
+		agent.model.save("weights_"+str(count)+".h5")
+		return 1
 
-cart_pole = Environment('CartPole-v0')
+
+cart_pole = Environment('CartPole-v1')
 agent = Agent(cart_pole.env.observation_space.shape[0], cart_pole.env.action_space.n, 64)
 
 itr = 0
@@ -53,14 +64,19 @@ try:
 		print "Config loaded"
 
 	while itr < 10000:
+		flag = 0
 		reward, q_val = cart_pole.run(agent)
 		string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr) + "\n"
 		target.write(string)
 		reward_list.append(reward)
+		if reward > 480:
+			flag = perform_early_stop(itr)
 		if itr % 10 == 0:
 			agent.decay()
 		if itr % 100 == 0 and itr != 0:
 			target.write(str(np.mean(reward_list[-100:])) + "\n")
+		if flag:
+			break
 		itr += 1
 finally:
 	target.close()
