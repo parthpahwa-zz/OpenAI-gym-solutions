@@ -95,9 +95,7 @@ class Agent:
 			if next_state[self.n_frames - 1] is None:
 				q_val[action] = reward
 			else:
-				# q_val[action] = reward + self.GAMMA * np.amax(np.array(target_Q[indx]))
-				# q_val[action] = reward + self.GAMMA * (np.amax(np.array(target_Q[indx])) + -1.0 * np.amax(-1.0 * np.array(target_Q[indx])))/2.0
-				q_val[action] = reward + self.GAMMA * np.mean(np.array(target_Q[indx]))
+				q_val[action] = reward + self.GAMMA * np.amax(np.array(target_Q[indx]))
 
 			y = np.vstack([y, q_val])
 			x.append(state)
