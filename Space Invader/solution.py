@@ -1,64 +1,100 @@
 import os.path
-import gym
+import ast
 from agent import Agent
-import numpy as np
-import cv2
 from keras.models import load_model
+from environment import Environment
 
-WIDTH = 80
-HEIGHT = 80
+WIDTH = 84
+HEIGHT = 84
+N_FRAMES = 3
 
-class Environment:
-	def __init__(self, environment_name):
-		self.env = gym.make(environment_name)
-		self.q_val = []
+class Player:
+	def __init__(self):
+		self.space_invader = Environment('SpaceInvaders-v0')
+		self.agent = Agent(HEIGHT, WIDTH, self.space_invader.env.action_space.n)
+		self.weights_filename = "weights.h5"
+		self.config_filename = 'config.txt'
+		self.score_filename = 'score.txt'
 
-	def run(self, agent):
-		state = self.env.reset()
-		total_reward = 0
-		state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
-		state = cv2.resize(state, (HEIGHT, WIDTH))
-		while True:
+	def train(self):
+		itr = self.load_config()
+		reward_list = []
+		max_score = -1
+		try:
+			while itr < 300000:
+				reward, q_val = self.space_invader.train(self.agent)
+				if reward > max_score:
+					max_score = reward
 
-			action, self.q_val = agent.predict_single(np.array(state).reshape(1, HEIGHT, WIDTH, 1))
-			next_state, reward, done, _ = self.env.step(action)
+				if itr % 20 == 0:
+					self.agent.decay()
 
-			if done: # terminal state
-				next_state = None
-			else:
-				next_state = cv2.cvtColor(next_state, cv2.COLOR_BGR2GRAY)
-				next_state = cv2.resize(next_state, (80, 80))
+				if itr % 1000 == 0 and itr != 0:
+					if itr % 10000 == 0:
+						self.perform_quicksave(itr, save_memory=True)
+					else:	
+						self.perform_quicksave(itr)
 
-			agent.save(state, next_state, action, reward)
-			agent.replay()
+				string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr) + " Max Reward: " + str(max_score) + "\n"
+				self.quick_write(string)
+				reward_list.append(reward)
+				itr += 1
 
-			state = next_state
-			total_reward += reward
-
-			if done:
-				break
-
-		return total_reward, self.q_val
+		finally:
+			self.perform_quicksave(itr, save_memory=True)
 
 
-space_invader = Environment('SpaceInvaders-v0')
-agent = Agent(HEIGHT, WIDTH, space_invader.env.action_space.n)
+	def test(self):
+		self.load_config()
+		itr = 0
+		try:
+			while itr < 100:
+				reward, q_val = self.space_invader.test(self.agent)
+				string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr) + " Max Reward: " + str(max_score) + "\n"
+				self.quick_write(string)
+				itr += 1
 
-itr = 0
-reward_list = []
-try:
-	if os.path.isfile("weights.h5"):
-		agent.model = load_model("weights.h5")
-		print "Weights loaded"
+		finally:
+			self.perform_quicksave(itr)
 
-	while True:
-		reward, q_val = space_invader.run(agent)
-		print "Reward:", reward, "Q value:", q_val, "Iteration:", itr
-		agent.decay()
-		reward_list.append(reward)
-		if itr % 100 == 0 and itr != 0:
-			print np.mean(reward_list[-100:])
-			agent.model.save("weights.h5")
-		itr += 1
-finally:
-	agent.model.save("weights.h5")
+
+	def perform_quicksave(self, itr, save_memory=False):
+		self.agent.model.save(self.weights_filename)
+
+		config_file = open(self.config_filename, 'w')
+		config = {"itr":itr, "eps":self.agent.eps}
+
+		config_file.write(str(config))
+		config_file.close()
+
+		if save_memory:
+			self.agent.memory.save_memory()
+
+
+	def load_config(self):
+		if os.path.isfile(self.weights_filename):
+			self.agent.model = load_model(self.weights_filename)
+			self.agent.memory.load_memory()
+			print "Weights loaded"
+
+		if os.path.isfile(self.config_filename):
+			config_file = open(self.config_filename, 'r')
+
+			config = ast.literal_eval(config_file.read())
+			itr = int(config["itr"])
+			self.agent.eps = float(config["eps"])
+
+			config_file.close()
+			print "Config loaded"
+			return itr
+
+		return 0
+
+
+	def quick_write(self, string):
+		target = open(self.score_filename, 'a')
+		target.write(string)
+		target.close()
+
+player1 = Player()
+player1.train()
