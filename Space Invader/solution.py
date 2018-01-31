@@ -18,7 +18,6 @@ class Player:
 
 	def train(self):
 		itr = self.load_config()
-		reward_list = []
 		max_score = -1
 		try:
 			while itr < 300000:
@@ -37,7 +36,6 @@ class Player:
 
 				string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr) + " Max Reward: " + str(max_score) + "\n"
 				self.quick_write(string)
-				reward_list.append(reward)
 				itr += 1
 
 		finally:
