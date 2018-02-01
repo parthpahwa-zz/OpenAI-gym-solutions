@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+# pylint: disable=C0103
+# pylint: disable=W0312
+# pylint: disable=C0111
+# pylint: disable=C0301
+# pylint: disable=E0211
+# pylint: disable=E0602
+# pylint: disable=E1121
+
+
 import random
 import numpy as np
 from keras.models import Sequential
@@ -9,7 +19,7 @@ from memory import Memory
 
 class Agent:
 
-	def __init__(self, height, width, n_actions, nframes=3, lr=0.0005, eps=1.0, memory=150000):
+	def __init__(self, height, width, n_actions, nframes=3, lr=0.00025, eps=1.0, memory=150000):
 		self.n_actions = n_actions
 		self.height = height
 		self.width = width
@@ -50,8 +60,13 @@ class Agent:
 		return self.model.predict(state)
 
 
-	def predict_single(self, state):
+	def predict_single(self, state, is_test=False):
 		q_val = self.predict(state)
+		if is_test:
+			if random.random() > 0.1:
+				return [np.argmax(q_val.flatten()), q_val]
+			return [random.randint(0, self.n_actions-1), q_val]
+
 		if random.random() > self.eps:
 			return [np.argmax(q_val.flatten()), q_val]
 		else:
@@ -59,7 +74,7 @@ class Agent:
 
 
 	def save(self, state, next_state, action, reward):
-		self.memory.add((np.array(state, dtype=np.uint8), np.array(next_state), int(action), int(reward)))
+		self.memory.add((np.array(state, dtype=np.uint8), np.array(next_state), int(action), float(reward)))
 
 
 	def replay(self):

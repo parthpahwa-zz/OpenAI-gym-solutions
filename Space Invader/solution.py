@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+# pylint: disable=C0103
+# pylint: disable=W0312
+# pylint: disable=C0111
+# pylint: disable=C0301
+# pylint: disable=E0211
+# pylint: disable=E0602
+# pylint: disable=E1121
+
+
 import os.path
 import ast
 from agent import Agent
@@ -19,9 +29,11 @@ class Player:
 	def train(self):
 		itr = self.load_config()
 		max_score = -1
+		avg = -1
 		try:
 			while itr < 300000:
-				reward, q_val = self.space_invader.train(self.agent)
+				reward, q_val, count = self.space_invader.train(self.agent)
+
 				if reward > max_score:
 					max_score = reward
 
@@ -31,15 +43,33 @@ class Player:
 				if itr % 1000 == 0 and itr != 0:
 					if itr % 10000 == 0:
 						self.perform_quicksave(itr, save_memory=True)
-					else:	
+					else:
 						self.perform_quicksave(itr)
 
-				string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr) + " Max Reward: " + str(max_score) + "\n"
+				string = str(reward) + " " + str(q_val) + " Itr: " + str(itr) + " " + str(count) + " Max " + str(max_score) + "\n"
 				self.quick_write(string)
-				itr += 1
 
+				if reward >= 0.8 * max_score and itr > 1000:
+					avg = self.perform_earlystop(avg)
+				itr += 1
 		finally:
 			self.perform_quicksave(itr, save_memory=True)
+
+
+	def perform_earlystop(self, avg):
+		itr = 0
+		total_reward = 0
+		while itr < 15:
+			reward, q_val = self.space_invader.test(self.agent)
+			total_reward += reward
+			itr += 1
+
+		if avg <= total_reward/15.0:
+			if os.path.isfile("best_performace_" + str(avg) + ".h5"):
+				os.remove("best_performace_" + str(avg) + ".h5")
+			avg = total_reward/15.0
+			self.agent.model.save("best_performace_" + str(avg) + ".h5")
+		return avg
 
 
 	def test(self):

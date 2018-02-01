@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+# pylint: disable=C0103
+# pylint: disable=W0312
+# pylint: disable=C0111
+# pylint: disable=C0301
+# pylint: disable=E0211
+# pylint: disable=E0602
+# pylint: disable=E1121
+
+
 import gym
 import numpy as np
 import cv2
@@ -18,8 +28,9 @@ class Environment:
 		state = cv2.resize(state, (HEIGHT, WIDTH))
 		current_frame_buffer = [state, state, state]
 		next_frame_buffer = [state, state, state]
-		while True:
 
+		frame_count = 1
+		while True:
 			action, self.q_val = agent.predict_single(np.array(current_frame_buffer).reshape(1, HEIGHT, WIDTH, N_FRAMES))
 			next_state, reward, done, _ = self.env.step(action)
 
@@ -38,12 +49,15 @@ class Environment:
 			state = next_state
 			current_frame_buffer.pop()
 			current_frame_buffer.append(state)
-			total_reward += reward
 
+			if reward == 0:
+				reward = -0.05
+			total_reward += reward
+			frame_count += 1
 			if done:
 				break
 
-		return total_reward, self.q_val
+		return total_reward, self.q_val, frame_count
 
 	def test(self, agent):
 		state = self.env.reset()
@@ -53,7 +67,7 @@ class Environment:
 		current_frame_buffer = [state, state, state]
 		next_frame_buffer = [state, state, state]
 		while True:
-			action, self.q_val = agent.predict_single(np.array(current_frame_buffer).reshape(1, HEIGHT, WIDTH, N_FRAMES))
+			action, self.q_val = agent.predict_single(np.array(current_frame_buffer).reshape(1, HEIGHT, WIDTH, N_FRAMES), True)
 			next_state, reward, done, _ = self.env.step(action)
 
 			if done: # terminal state
