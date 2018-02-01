@@ -1,13 +1,3 @@
-#!/usr/bin/env python
-# pylint: disable=C0103
-# pylint: disable=W0312
-# pylint: disable=C0111
-# pylint: disable=C0301
-# pylint: disable=E0211
-# pylint: disable=E0602
-# pylint: disable=E1121
-
-
 import gym
 import numpy as np
 
