@@ -27,7 +27,7 @@ class Memory:
 		if len(self.transition_list) < 14000:
 			np.save(self.savefile_name, self.transition_list)
 		else:
-			np.save(self.savefile_name, np.array(random.sample(self.transition_list, n)))
+			np.save(self.savefile_name, np.array(random.sample(self.transition_list, 14000)))
 
 	def load_memory(self):
 		if os.path.isfile(self.savefile_name):
