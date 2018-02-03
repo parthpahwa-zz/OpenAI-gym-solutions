@@ -17,9 +17,7 @@ class Player:
 		self.score_filename = 'score.txt'
 
 	def train(self):
-		itr = self.load_config()
-		max_score = -1
-		avg = -1
+		itr, avg, max_score = self.load_config()
 		try:
 			while itr < 300000:
 				reward, q_val, count = self.space_invader.train(self.agent)
@@ -31,19 +29,19 @@ class Player:
 					self.agent.decay()
 
 				if itr % 1000 == 0 and itr != 0:
-					if itr % 10000 == 0:
-						self.perform_quicksave(itr, save_memory=True)
+					if itr % 3500 == 0:
+						self.perform_quicksave(itr, avg, max_score, save_memory=True)
 					else:
-						self.perform_quicksave(itr)
+						self.perform_quicksave(itr, avg, max_score)
 
 				string = str(reward) + " " + str(q_val) + " Itr: " + str(itr) + " " + str(count) + " Max " + str(max_score) + "\n"
 				self.quick_write(string)
 
-				if reward >= 0.8 * max_score and itr > 1000:
+				if reward >= avg and itr > 500:
 					avg = self.perform_earlystop(avg)
 				itr += 1
 		finally:
-			self.perform_quicksave(itr, save_memory=True)
+			self.perform_quicksave(itr, avg, max_score, save_memory=True)
 
 
 	def perform_earlystop(self, avg):
@@ -63,24 +61,23 @@ class Player:
 
 
 	def test(self):
-		self.load_config()
+		self.load_config(test=True)
 		itr = 0
 		try:
 			while itr < 100:
 				reward, q_val = self.space_invader.test(self.agent)
-				string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr) + " Max Reward: " + str(max_score) + "\n"
-				self.quick_write(string)
+				string = "Reward: " + str(reward) + " Q value: " + str(q_val) + " Iteration: " + str(itr)
+				print string
 				itr += 1
 
 		finally:
-			self.perform_quicksave(itr)
+			pass
 
-
-	def perform_quicksave(self, itr, save_memory=False):
+	def perform_quicksave(self, itr, avg, max_score, save_memory=False):
 		self.agent.model.save(self.weights_filename)
 
 		config_file = open(self.config_filename, 'w')
-		config = {"itr":itr, "eps":self.agent.eps}
+		config = {"itr":itr, "eps":self.agent.eps, "avg":avg, "max_score":max_score}
 
 		config_file.write(str(config))
 		config_file.close()
@@ -89,7 +86,7 @@ class Player:
 			self.agent.memory.save_memory()
 
 
-	def load_config(self):
+	def load_config(self, test=False):
 		if os.path.isfile(self.weights_filename):
 			self.agent.model = load_model(self.weights_filename)
 			self.agent.memory.load_memory()
@@ -100,13 +97,16 @@ class Player:
 
 			config = ast.literal_eval(config_file.read())
 			itr = int(config["itr"])
+			avg = float(config["avg"])
+			max_score = float(config["max_score"])
+			if test and avg != -1:
+				self.agent.model = load_model("best_performace_" + str(avg) + ".h5")
 			self.agent.eps = float(config["eps"])
-
 			config_file.close()
 			print "Config loaded"
-			return itr
+			return itr, avg, max_score
 
-		return 0
+		return 0, -1.0, -1.0
 
 
 	def quick_write(self, string):
