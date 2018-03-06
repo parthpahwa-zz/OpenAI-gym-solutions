@@ -43,7 +43,7 @@ class Agent:
 
 
 	def train(self, x, y):
-		self.model.fit(x, y, batch_size=self.BATCH_SIZE, verbose=0, epochs=2)
+		self.model.fit(x, y, batch_size=self.BATCH_SIZE, verbose=0, epochs=1)
 
 
 	def predict(self, state):
@@ -63,15 +63,14 @@ class Agent:
 			return [random.randint(0, self.n_actions-1), q_val]
 
 
-	def save(self, state, next_state, action, reward):
+	def save(self, state, next_state, action, reward, undersampled=False):
 		if self.counter % 4540 == 0:
 			self.decay()
-		self.memory.add((np.array(state, dtype=np.uint8), np.array(next_state), int(action), float(reward)))
+		self.memory.add((np.array(state, dtype=np.uint8), np.array(next_state), int(action), float(reward)), undersampled)
 
 
-	def replay(self):
-		batch = self.memory.sample(self.BATCH_SIZE)
-
+	def replay(self, undersampled=False):
+		batch = self.memory.sample(self.BATCH_SIZE, undersampled)
 		x = []
 		y = np.empty(0).reshape(0, self.n_actions)
 		next_state = []
