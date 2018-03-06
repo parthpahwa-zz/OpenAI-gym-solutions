@@ -2,7 +2,6 @@ import gym
 import numpy as np
 import cv2
 
-
 class Environment:
 	def __init__(self, environment_name, WIDTH, HEIGHT, N_FRAMES):
 		self.env = gym.make(environment_name)
@@ -10,7 +9,7 @@ class Environment:
 		self.HEIGHT = HEIGHT
 		self.N_FRAMES = N_FRAMES
 
-	def train(self, agent):
+	def train(self, agent, undersampled=False):
 		q_val_list = []
 		state = self.env.reset()
 		total_reward = 0
@@ -39,8 +38,8 @@ class Environment:
 			elif reward < 0:
 				clipped_reward = -1
 
-			agent.save(current_frame_buffer, next_frame_buffer, action, clipped_reward)
-			agent.replay()
+			agent.save(current_frame_buffer, next_frame_buffer, action, clipped_reward, undersampled)
+			agent.replay(undersampled)
 
 			state = next_state
 			current_frame_buffer.pop()
@@ -63,7 +62,7 @@ class Environment:
 		while True:
 			action, self.q_val = agent.predict_single(np.array(current_frame_buffer).reshape(1, self.HEIGHT, self.WIDTH, self.N_FRAMES), True)
 			next_state, reward, done, _ = self.env.step(action)
-			
+
 			if done: # terminal state
 				next_state = None
 			else:
