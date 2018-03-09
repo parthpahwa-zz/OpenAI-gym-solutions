@@ -9,8 +9,8 @@ HEIGHT = 84
 N_FRAMES = 4
 
 class Player:
-	def __init__(self):
-		self.game = Environment('SpaceInvaders-v0', WIDTH, HEIGHT, N_FRAMES)
+	def __init__(self, env_name):
+		self.game = Environment(env_name, WIDTH, HEIGHT, N_FRAMES)
 		self.agent = Agent(HEIGHT, WIDTH, self.game.env.action_space.n, nframes=N_FRAMES)
 		self.weights_filename = "Records/weights.h5"
 		self.config_filename = 'Records/config.txt'
